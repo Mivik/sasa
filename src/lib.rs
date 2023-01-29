@@ -1,4 +1,4 @@
-/// Simple And Stupid Audio for Rust, built on top of cpal, optimized for low latency.
+/// Simple And Stupid Audio for Rust, optimized for low latency.
 pub mod backend;
 pub use backend::Backend;
 
@@ -11,7 +11,7 @@ mod renderer;
 pub use renderer::{Music, MusicParams, PlaySfxParams, Renderer, Sfx};
 
 use crate::{backend::BackendSetup, mixer::MixerCommand};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use ringbuf::{HeapProducer, HeapRb};
 use std::{
     ops::Mul,
@@ -132,7 +132,8 @@ impl AudioManager {
     pub fn add_renderer(&mut self, renderer: impl Renderer + 'static) -> Result<()> {
         self.prod
             .push(MixerCommand::AddRenderer(Box::new(renderer)))
-            .map_err(buffer_is_full)?;
+            .map_err(buffer_is_full)
+            .context("add renderer")?;
         Ok(())
     }
 

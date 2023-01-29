@@ -1,5 +1,5 @@
 use crate::{buffer_is_full, AudioClip, Renderer};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
 use std::sync::{Arc, Weak};
 
@@ -81,7 +81,10 @@ impl Sfx {
     }
 
     pub fn play(&mut self, params: PlaySfxParams) -> Result<()> {
-        self.prod.push((0., params)).map_err(buffer_is_full)?;
+        self.prod
+            .push((0., params))
+            .map_err(buffer_is_full)
+            .context("play sfx")?;
         Ok(())
     }
 }

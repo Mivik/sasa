@@ -1,5 +1,5 @@
 use crate::{buffer_is_full, AudioClip, Frame, Renderer};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
 use std::sync::{
     atomic::{AtomicBool, AtomicU32, Ordering},
@@ -167,14 +167,16 @@ impl Music {
     pub fn play(&mut self) -> Result<()> {
         self.prod
             .push(MusicCommand::Resume)
-            .map_err(buffer_is_full)?;
+            .map_err(buffer_is_full)
+            .context("play music")?;
         Ok(())
     }
 
     pub fn pause(&mut self) -> Result<()> {
         self.prod
             .push(MusicCommand::Pause)
-            .map_err(buffer_is_full)?;
+            .map_err(buffer_is_full)
+            .context("pause")?;
         Ok(())
     }
 
@@ -185,7 +187,8 @@ impl Music {
     pub fn seek_to(&mut self, position: f32) -> Result<()> {
         self.prod
             .push(MusicCommand::SeekTo(position))
-            .map_err(buffer_is_full)?;
+            .map_err(buffer_is_full)
+            .context("seek to")?;
         Ok(())
     }
 
