@@ -96,7 +96,15 @@ impl AudioClip {
         loop {
             match format_reader.next_packet() {
                 Ok(packet) => {
-                    let buffer = decoder.decode(&packet)?;
+                    let buffer = match decoder.decode(&packet) {
+                        Ok(buffer) => buffer,
+                        Err(symphonia::core::errors::Error::DecodeError(s))
+                            if s.contains("invalid main_data offset") =>
+                        {
+                            continue;
+                        }
+                        Err(err) => return Err(err.into()),
+                    };
                     load_frames_from_buffer_ref(&mut frames, &buffer)?;
                 }
                 Err(error) => match error {
