@@ -22,10 +22,17 @@ impl Default for MusicParams {
     }
 }
 
-#[derive(Default)]
 struct SharedState {
     position: AtomicU32, // float in bits
     paused: AtomicBool,
+}
+impl Default for SharedState {
+    fn default() -> Self {
+        Self {
+            position: AtomicU32::default(),
+            paused: AtomicBool::new(true),
+        }
+    }
 }
 
 enum MusicCommand {
