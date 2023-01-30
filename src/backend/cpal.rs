@@ -1,7 +1,7 @@
 use crate::Backend;
 use anyhow::{anyhow, Context, Result};
 use cpal::{
-    traits::{DeviceTrait, HostTrait},
+    traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, OutputCallbackInfo, Stream, StreamError,
 };
 use std::sync::{
@@ -91,6 +91,7 @@ impl Backend for CpalBackend {
             )
         })
         .context("failed to build stream")?;
+        stream.play()?;
         self.stream = Some(stream);
         Ok(())
     }
