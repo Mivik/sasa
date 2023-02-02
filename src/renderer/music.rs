@@ -71,7 +71,7 @@ impl MusicRenderer {
                     }
                 }
                 MusicCommand::SeekTo(position) => {
-                    self.index = (position * sample_rate as f32).round() as usize;
+                    self.index = (position * sample_rate as f32 / self.settings.playback_rate).round() as usize;
                 }
             }
         }
@@ -98,7 +98,7 @@ impl MusicRenderer {
 
     #[inline]
     fn position(&self, delta: f32) -> f32 {
-        self.index as f32 * delta * self.settings.playback_rate
+        self.index as f32 * delta
     }
 }
 
