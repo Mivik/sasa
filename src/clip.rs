@@ -25,7 +25,7 @@ impl AudioClip {
         }))
     }
 
-    pub fn new(data: Vec<u8>) -> Result<Self> {
+    pub fn decode(data: Vec<u8>) -> Result<(Vec<Frame>, u32)> {
         fn load_frames_from_buffer(
             frames: &mut Vec<Frame>,
             buffer: &symphonia::core::audio::AudioBuffer<f32>,
@@ -117,6 +117,12 @@ impl AudioClip {
                 },
             }
         }
+        Ok((frames, sample_rate))
+    }
+
+    #[inline]
+    pub fn new(data: Vec<u8>) -> Result<Self> {
+        let (frames, sample_rate) = Self::decode(data)?;
         Ok(Self::from_raw(frames, sample_rate))
     }
 
