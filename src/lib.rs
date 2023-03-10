@@ -14,7 +14,7 @@ use crate::{backend::BackendSetup, mixer::MixerCommand};
 use anyhow::{anyhow, Context, Result};
 use ringbuf::{HeapProducer, HeapRb};
 use std::{
-    ops::Mul,
+    ops::{Add, Mul},
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc,
@@ -25,7 +25,7 @@ fn buffer_is_full<E>(_: E) -> anyhow::Error {
     anyhow!("buffer is full")
 }
 
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 pub struct Frame(pub f32, pub f32);
 impl Frame {
     pub fn avg(&self) -> f32 {
@@ -37,6 +37,13 @@ impl Frame {
             self.0 + (other.0 - self.0) * f,
             self.1 + (other.1 - self.1) * f,
         )
+    }
+}
+impl Add for Frame {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0, self.1 + rhs.1)
     }
 }
 impl Mul<f32> for Frame {
