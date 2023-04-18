@@ -42,6 +42,8 @@ enum MusicCommand {
     Resume,
     SeekTo(f32),
     SetLowPass(f32),
+    FadeIn(f32),
+    FadeOut(f32),
 }
 pub(crate) struct MusicRenderer {
     clip: AudioClip,
@@ -53,13 +55,18 @@ pub(crate) struct MusicRenderer {
     last_sample_rate: u32,
     low_pass: f32,
     last_output: Frame,
+
+    fade_time: i32,
+    fade_current: i32,
 }
 impl MusicRenderer {
     fn prepare(&mut self, sample_rate: u32) {
         if self.last_sample_rate != sample_rate {
-            self.index = (self.index as f32 * (sample_rate as f32 / self.last_sample_rate as f32))
-                .round() as usize;
+            let factor = sample_rate as f32 / self.last_sample_rate as f32;
+            self.index = (self.index as f32 * factor).round() as _;
             self.last_sample_rate = sample_rate;
+            self.fade_time = (self.fade_time as f32 * factor).round() as _;
+            self.fade_current = (self.fade_current as f32 * factor).round() as _;
         }
         for cmd in self.cons.pop_iter() {
             match cmd {
@@ -82,6 +89,20 @@ impl MusicRenderer {
                 MusicCommand::SetLowPass(low_pass) => {
                     self.low_pass = low_pass;
                 }
+                MusicCommand::FadeIn(time) => {
+                    if self.paused {
+                        self.paused = false;
+                        if let Some(state) = self.state.upgrade() {
+                            state.paused.store(false, Ordering::SeqCst);
+                        }
+                    }
+                    self.fade_time = (time * sample_rate as f32).round() as _;
+                    self.fade_current = 0;
+                }
+                MusicCommand::FadeOut(time) => {
+                    self.fade_time = (-time * sample_rate as f32).round() as _;
+                    self.fade_current = 0;
+                }
             }
         }
     }
@@ -91,7 +112,28 @@ impl MusicRenderer {
         let s = &self.settings;
         if let Some(frame) = self.clip.sample(position) {
             self.index += 1;
-            Some(frame * s.amplifier)
+            let mut amp = s.amplifier;
+            if self.fade_time > 0 {
+                self.fade_current += 1;
+                if self.fade_current >= self.fade_time {
+                    self.fade_time = 0;
+                } else {
+                    amp *= self.fade_current as f32 / self.fade_time as f32;
+                }
+            } else if self.fade_time < 0 {
+                self.fade_current -= 1;
+                if self.fade_current <= self.fade_time {
+                    self.fade_time = 0;
+                    self.paused = true;
+                    if let Some(state) = self.state.upgrade() {
+                        state.paused.store(true, Ordering::SeqCst);
+                    }
+                    return None;
+                } else {
+                    amp *= 1. - self.fade_current as f32 / self.fade_time as f32;
+                }
+            }
+            Some(frame * amp)
         } else if s.loop_ {
             self.index = 1;
             Some(if let Some(frame) = self.clip.sample(0.) {
@@ -185,6 +227,9 @@ impl Music {
             last_sample_rate: 1,
             low_pass: 0.,
             last_output: Frame(0., 0.),
+
+            fade_time: 0,
+            fade_current: 0,
         };
         (Self { arc, prod }, renderer)
     }
@@ -193,16 +238,14 @@ impl Music {
         self.prod
             .push(MusicCommand::Resume)
             .map_err(buffer_is_full)
-            .context("play music")?;
-        Ok(())
+            .context("play music")
     }
 
     pub fn pause(&mut self) -> Result<()> {
         self.prod
             .push(MusicCommand::Pause)
             .map_err(buffer_is_full)
-            .context("pause")?;
-        Ok(())
+            .context("pause")
     }
 
     pub fn paused(&mut self) -> bool {
@@ -213,16 +256,28 @@ impl Music {
         self.prod
             .push(MusicCommand::SeekTo(position))
             .map_err(buffer_is_full)
-            .context("seek to")?;
-        Ok(())
+            .context("seek to")
     }
 
     pub fn set_low_pass(&mut self, low_pass: f32) -> Result<()> {
         self.prod
             .push(MusicCommand::SetLowPass(low_pass))
             .map_err(buffer_is_full)
-            .context("set low pass")?;
-        Ok(())
+            .context("set low pass")
+    }
+
+    pub fn fade_in(&mut self, time: f32) -> Result<()> {
+        self.prod
+            .push(MusicCommand::FadeIn(time))
+            .map_err(buffer_is_full)
+            .context("fade in")
+    }
+
+    pub fn fade_out(&mut self, time: f32) -> Result<()> {
+        self.prod
+            .push(MusicCommand::FadeOut(time))
+            .map_err(buffer_is_full)
+            .context("fade out")
     }
 
     pub fn position(&self) -> f32 {

@@ -84,7 +84,6 @@ impl Sfx {
         self.prod
             .push((0., params))
             .map_err(buffer_is_full)
-            .context("play sfx")?;
-        Ok(())
+            .context("play sfx")
     }
 }
