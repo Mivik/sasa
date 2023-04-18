@@ -108,7 +108,7 @@ impl MusicRenderer {
     }
 
     #[inline]
-    fn frame(&mut self, position: f32) -> Option<Frame> {
+    fn frame(&mut self, position: f32, delta: f32) -> Option<Frame> {
         let s = &self.settings;
         if let Some(mut frame) = self.clip.sample(position) {
             if s.loop_mix_time >= 0. {
@@ -121,30 +121,33 @@ impl MusicRenderer {
             }
             self.index += 1;
             let mut amp = s.amplifier;
-            if self.fade_time > 0 {
-                self.fade_current += 1;
-                if self.fade_current >= self.fade_time {
-                    self.fade_time = 0;
-                } else {
-                    amp *= self.fade_current as f32 / self.fade_time as f32;
-                }
-            } else if self.fade_time < 0 {
-                self.fade_current -= 1;
-                if self.fade_current <= self.fade_time {
-                    self.fade_time = 0;
-                    self.paused = true;
-                    if let Some(state) = self.state.upgrade() {
-                        state.paused.store(true, Ordering::SeqCst);
+            if self.fade_time != 0 {
+                if self.fade_time > 0 {
+                    self.fade_current += 1;
+                    if self.fade_current >= self.fade_time {
+                        self.fade_time = 0;
+                    } else {
+                        amp *= self.fade_current as f32 / self.fade_time as f32;
                     }
-                    return None;
                 } else {
-                    amp *= 1. - self.fade_current as f32 / self.fade_time as f32;
+                    self.fade_current -= 1;
+                    if self.fade_current <= self.fade_time {
+                        self.fade_time = 0;
+                        self.paused = true;
+                        if let Some(state) = self.state.upgrade() {
+                            state.paused.store(true, Ordering::SeqCst);
+                        }
+                        return None;
+                    } else {
+                        amp *= 1. - self.fade_current as f32 / self.fade_time as f32;
+                    }
                 }
             }
             Some(frame * amp)
         } else if s.loop_mix_time >= 0. {
-            self.index = (s.loop_mix_time * self.last_sample_rate as f32).round() as _;
-            Some(if let Some(frame) = self.clip.sample(s.loop_mix_time) {
+            let position = position - self.clip.length() + s.loop_mix_time;
+            self.index = (position / delta).round() as _;
+            Some(if let Some(frame) = self.clip.sample(position) {
                 frame * s.amplifier
             } else {
                 Frame::default()
@@ -178,7 +181,7 @@ impl Renderer for MusicRenderer {
             let delta = 1. / sample_rate as f64 * self.settings.playback_rate as f64;
             let mut position = self.index as f64 * delta;
             for sample in data.iter_mut() {
-                if let Some(frame) = self.frame(position as f32) {
+                if let Some(frame) = self.frame(position as f32, delta as f32) {
                     *sample += self.update_and_get(frame).avg();
                 } else {
                     break;
@@ -199,7 +202,7 @@ impl Renderer for MusicRenderer {
             let delta = 1. / sample_rate as f64 * self.settings.playback_rate as f64;
             let mut position = self.index as f64 * delta;
             for sample in data.chunks_exact_mut(2) {
-                if let Some(frame) = self.frame(position as f32) {
+                if let Some(frame) = self.frame(position as f32, delta as f32) {
                     let frame = self.update_and_get(frame);
                     sample[0] += frame.0;
                     sample[1] += frame.1;
