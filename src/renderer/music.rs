@@ -8,7 +8,7 @@ use std::sync::{
 
 #[derive(Debug, Clone)]
 pub struct MusicParams {
-    pub loop_: bool,
+    pub loop_mix_time: f32,
     pub amplifier: f32,
     pub playback_rate: f32,
     pub command_buffer_size: usize,
@@ -16,7 +16,7 @@ pub struct MusicParams {
 impl Default for MusicParams {
     fn default() -> Self {
         Self {
-            loop_: false,
+            loop_mix_time: -1.,
             amplifier: 1.,
             playback_rate: 1.,
             command_buffer_size: 16,
@@ -110,7 +110,15 @@ impl MusicRenderer {
     #[inline]
     fn frame(&mut self, position: f32) -> Option<Frame> {
         let s = &self.settings;
-        if let Some(frame) = self.clip.sample(position) {
+        if let Some(mut frame) = self.clip.sample(position) {
+            if s.loop_mix_time >= 0. {
+                let pos = position + s.loop_mix_time - self.clip.length();
+                if pos >= 0. {
+                    if let Some(new_frame) = self.clip.sample(pos) {
+                        frame = frame + new_frame;
+                    }
+                }
+            }
             self.index += 1;
             let mut amp = s.amplifier;
             if self.fade_time > 0 {
@@ -134,9 +142,9 @@ impl MusicRenderer {
                 }
             }
             Some(frame * amp)
-        } else if s.loop_ {
-            self.index = 1;
-            Some(if let Some(frame) = self.clip.sample(0.) {
+        } else if s.loop_mix_time >= 0. {
+            self.index = (s.loop_mix_time * self.last_sample_rate as f32).round() as _;
+            Some(if let Some(frame) = self.clip.sample(s.loop_mix_time) {
                 frame * s.amplifier
             } else {
                 Frame::default()
