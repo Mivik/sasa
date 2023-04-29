@@ -40,6 +40,7 @@ impl Default for SharedState {
 enum MusicCommand {
     Pause,
     Resume,
+    SetAmplifier(f32),
     SeekTo(f32),
     SetLowPass(f32),
     FadeIn(f32),
@@ -81,6 +82,9 @@ impl MusicRenderer {
                     if let Some(state) = self.state.upgrade() {
                         state.paused.store(false, Ordering::SeqCst);
                     }
+                }
+                MusicCommand::SetAmplifier(amp) => {
+                    self.settings.amplifier = amp;
                 }
                 MusicCommand::SeekTo(position) => {
                     self.index = (position * sample_rate as f32 / self.settings.playback_rate)
@@ -261,6 +265,13 @@ impl Music {
 
     pub fn paused(&mut self) -> bool {
         self.arc.paused.load(Ordering::SeqCst)
+    }
+
+    pub fn set_amplifier(&mut self, amp: f32) -> Result<()> {
+        self.prod
+            .push(MusicCommand::SetAmplifier(amp))
+            .map_err(buffer_is_full)
+            .context("set amplifier")
     }
 
     pub fn seek_to(&mut self, position: f32) -> Result<()> {
