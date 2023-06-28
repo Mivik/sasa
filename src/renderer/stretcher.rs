@@ -1,10 +1,10 @@
 /*
  * Implementation of Phase Vocoder-based Time Stretching Algorithm
- * 
+ *
  * Copyright (c) 2023 Rong "Mantle" Bao <baorong2005@126.com>
  * Copyright (c) 2021 Andrew Yoon
  * Copyright (c) 2014 Nasca Octavian Paul
- * 
+ *
  * Derived from [paulstretch_python](https://github.com/paulnasca/paulstretch_python)
  * - License: Public Domain
  * Derived from [rocoder](https://github.com/ajyoon/rocoder)
@@ -102,11 +102,7 @@ pub struct Stretcher {
 }
 
 impl Stretcher {
-    pub fn new(
-        sample_rate: u32,
-        input: &[f32],
-        factor: f32,
-    ) -> Stretcher {
+    pub fn new(sample_rate: u32, input: &[f32], factor: f32) -> Stretcher {
         let window = hanning(8192);
         let window_len = window.len();
         let half_window_len = window_len / 2;

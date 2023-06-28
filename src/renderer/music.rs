@@ -89,7 +89,7 @@ impl MusicRenderer {
                 }
                 MusicCommand::SeekTo(position) => {
                     self.index = (position * sample_rate as f32 / self.settings.playback_rate)
-                        .round() as usize;                  
+                        .round() as usize;
                 }
                 MusicCommand::SetLowPass(low_pass) => {
                     self.low_pass = low_pass;

@@ -5,7 +5,7 @@ mod sfx;
 pub use sfx::{Sfx, PlaySfxParams};
 
 mod stretcher;
-pub use stretcher::{Stretcher};
+pub use stretcher::Stretcher;
 
 pub trait Renderer: Send + Sync {
     fn alive(&self) -> bool;
