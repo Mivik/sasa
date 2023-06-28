@@ -8,7 +8,7 @@ pub use clip::AudioClip;
 mod mixer;
 
 mod renderer;
-pub use renderer::{Music, MusicParams, PlaySfxParams, Renderer, Sfx};
+pub use renderer::{Music, MusicParams, PlaySfxParams, Renderer, Sfx, Stretcher};
 
 use crate::{backend::BackendSetup, mixer::MixerCommand};
 use anyhow::{anyhow, Context, Result};

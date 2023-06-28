@@ -1,4 +1,4 @@
-use crate::{buffer_is_full, AudioClip, Frame, Renderer};
+use crate::{buffer_is_full, AudioClip, Frame, Renderer, Stretcher};
 use anyhow::{Context, Result};
 use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
 use std::sync::{
@@ -69,6 +69,7 @@ impl MusicRenderer {
             self.fade_time = (self.fade_time as f32 * factor).round() as _;
             self.fade_current = (self.fade_current as f32 * factor).round() as _;
         }
+
         for cmd in self.cons.pop_iter() {
             match cmd {
                 MusicCommand::Pause => {
@@ -88,7 +89,7 @@ impl MusicRenderer {
                 }
                 MusicCommand::SeekTo(position) => {
                     self.index = (position * sample_rate as f32 / self.settings.playback_rate)
-                        .round() as usize;
+                        .round() as usize;                  
                 }
                 MusicCommand::SetLowPass(low_pass) => {
                     self.low_pass = low_pass;
@@ -182,7 +183,7 @@ impl Renderer for MusicRenderer {
     fn render_mono(&mut self, sample_rate: u32, data: &mut [f32]) {
         self.prepare(sample_rate);
         if !self.paused {
-            let delta = 1. / sample_rate as f64 * self.settings.playback_rate as f64;
+            let delta = 1. / sample_rate as f64;
             let mut position = self.index as f64 * delta;
             for sample in data.iter_mut() {
                 if let Some(frame) = self.frame(position as f32, delta as f32) {
@@ -203,7 +204,7 @@ impl Renderer for MusicRenderer {
     fn render_stereo(&mut self, sample_rate: u32, data: &mut [f32]) {
         self.prepare(sample_rate);
         if !self.paused {
-            let delta = 1. / sample_rate as f64 * self.settings.playback_rate as f64;
+            let delta = 1. / sample_rate as f64;
             let mut position = self.index as f64 * delta;
             for sample in data.chunks_exact_mut(2) {
                 if let Some(frame) = self.frame(position as f32, delta as f32) {
@@ -232,8 +233,30 @@ impl Music {
     pub(crate) fn new(clip: AudioClip, settings: MusicParams) -> (Music, MusicRenderer) {
         let (prod, cons) = HeapRb::new(settings.command_buffer_size).split();
         let arc = Arc::default();
+        // Stretch clip if necessary
+        let new_clip = if (settings.playback_rate * 1000.0).round() != 1000.0 {
+            let factor = 1.0 / settings.playback_rate;
+            let sr = clip.sample_rate();
+            let l_ch: Vec<f32> = clip.frames().iter().map(|f| f.0).collect();
+            let l_ch_stretched: Vec<f32> = Stretcher::new(sr, &l_ch, factor)
+                .collect::<Vec<_>>()
+                .concat();
+            let r_ch: Vec<f32> = clip.frames().iter().map(|f| f.1).collect();
+            let r_ch_stretched: Vec<f32> = Stretcher::new(sr, &r_ch, factor)
+                .collect::<Vec<_>>()
+                .concat();
+            let new_frames: Vec<Frame> = l_ch_stretched
+                .iter()
+                .zip(r_ch_stretched)
+                .map(|f| Frame(*f.0, f.1))
+                .collect();
+            AudioClip::from_raw(new_frames, clip.sample_rate())
+        } else {
+            clip
+        };
+
         let renderer = MusicRenderer {
-            clip,
+            clip: new_clip,
             settings,
             state: Arc::downgrade(&arc),
             cons,
