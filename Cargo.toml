@@ -11,7 +11,10 @@ oboe = ["dep:oboe"]
 [dependencies]
 anyhow = "1.0.68"
 cpal = { version = "0.14.2", optional = true }
+rand = "0.8.4"
 ringbuf = "0.3.2"
+rustfft = { version = "6.1.0", features = ["avx", "sse", "neon"] }
+slice-deque = "0.3.0"
 symphonia = { version = "0.5.2", features = ["mp3"] }
 thiserror = "1.0.38"
 
