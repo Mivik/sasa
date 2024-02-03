@@ -29,7 +29,10 @@ struct StateCell {
 
 impl StateCell {
     pub fn get(&self) -> &mut (Mixer, LatencyRecorder) {
-        unsafe { &mut *(self as *const StateCell as *const (Mixer, LatencyRecorder) as *mut _) }
+        #[allow(invalid_reference_casting)]
+        unsafe {
+            &mut *(self as *const StateCell as *const (Mixer, LatencyRecorder) as *mut _)
+        }
     }
 }
 
