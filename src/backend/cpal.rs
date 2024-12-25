@@ -1,5 +1,5 @@
 use crate::Backend;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{/*anyhow, */Context, Result};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, OutputCallbackInfo, Stream, StreamError,
@@ -42,9 +42,16 @@ impl Backend for CpalBackend {
 
     fn start(&mut self) -> Result<()> {
         let host = cpal::default_host();
-        let device = host
+        /*let device = host
             .default_output_device()
-            .ok_or_else(|| anyhow!("no default output device is found"))?;
+            .ok_or_else(|| anyhow!("no default output device is found"))?;*/
+        let device = match host.default_output_device() { 
+            Some(device) => device, 
+            None => { 
+                eprintln!("no default output device is found"); 
+                return Ok(());
+            },
+        };
         let mut config = device
             .default_output_config()
             .context("cannot get output config")?
