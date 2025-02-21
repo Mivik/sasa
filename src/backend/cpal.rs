@@ -79,6 +79,7 @@ impl Backend for CpalBackend {
                     }
                 },
                 error_callback,
+                None,
             )
         } else {
             device.build_output_stream(
@@ -92,6 +93,7 @@ impl Backend for CpalBackend {
                     }
                 },
                 error_callback,
+                None
             )
         })
         .context("failed to build stream")?;
