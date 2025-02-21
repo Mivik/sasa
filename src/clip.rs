@@ -137,11 +137,11 @@ impl AudioClip {
         }
     }
 
-    pub fn sample_position(&self, position: f32) -> Option<Frame> {
+    pub fn sample_position(&self, position: f64) -> Option<Frame> {
         let actual_index = position as usize;
         if let Some(frame) = self.0.frames.get(actual_index) {
             let next_frame = self.0.frames.get(actual_index + 1).unwrap_or(frame);
-            Some(frame.interpolate(next_frame, position - actual_index as f32))
+            Some(frame.interpolate(next_frame, (position - actual_index as f64) as f32))
         } else {
             None
         }
