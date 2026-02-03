@@ -9,13 +9,10 @@ cpal = ["dep:cpal"]
 oboe = ["dep:oboe"]
 
 [dependencies]
-anyhow = "1.0.68"
-cpal = { version = "0.14.2", optional = true }
-ringbuf = "0.3.2"
-symphonia = { version = "0.5.2", features = ["mp3", "aac"] }
-thiserror = "1.0.38"
+anyhow = "1.0.100"
+cpal = { version = "0.17.1", optional = true }
+ringbuf = "0.3.3"
+symphonia = { version = "0.5.5", features = ["mp3", "aac"] }
+thiserror = "2.0.18"
 
-oboe = { version = "0.5.0", optional = true, features = ["shared-stdcxx"] }
-
-[dev-dependencies]
-kira = "0.7.1"
+oboe = { version = "0.6.1", optional = true, features = ["shared-stdcxx"] }

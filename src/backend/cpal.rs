@@ -52,7 +52,7 @@ impl Backend for CpalBackend {
         config.buffer_size = self
             .settings
             .buffer_size
-            .map_or(BufferSize::Default, |it| BufferSize::Fixed(it));
+            .map_or(BufferSize::Default, BufferSize::Fixed);
 
         let broken = Arc::clone(&self.broken);
         let error_callback = move |err| {
@@ -62,7 +62,7 @@ impl Backend for CpalBackend {
             }
         };
         let state = Arc::clone(self.state.as_ref().unwrap());
-        state.get().0.sample_rate = config.sample_rate.0;
+        state.get().0.sample_rate = config.sample_rate;
         let stream = (if config.channels == 1 {
             device.build_output_stream(
                 &config,
@@ -75,6 +75,7 @@ impl Backend for CpalBackend {
                     }
                 },
                 error_callback,
+                None,
             )
         } else {
             device.build_output_stream(
@@ -88,6 +89,7 @@ impl Backend for CpalBackend {
                     }
                 },
                 error_callback,
+                None,
             )
         })
         .context("failed to build stream")?;
