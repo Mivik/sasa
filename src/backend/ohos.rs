@@ -184,8 +184,11 @@ extern "C" fn audio_renderer_on_interrupt(
         return -1;
     }
 
+    let callback_data = unsafe { &*(user_data as *mut OhosCallbackData) };
+
     match hint {
         ohos_audio_sys::OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_PAUSE => {
+            callback_data.broken.store(true, Ordering::Relaxed);
             eprintln!("Audio interrupted (type: {:?}): stream paused", force_type);
         }
         _ => {
