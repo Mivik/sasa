@@ -4,6 +4,9 @@ pub mod cpal;
 #[cfg(feature = "oboe")]
 pub mod oboe;
 
+#[cfg(feature = "ohos")]
+pub mod ohos;
+
 use crate::{
     mixer::{Mixer, MixerCommand},
     LatencyRecorder,
