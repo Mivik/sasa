@@ -9,7 +9,9 @@ use std::{
 };
 
 use ohos_audio_sys::{
-    OH_AudioInterrupt_ForceType, OH_AudioInterrupt_Hint, OH_AudioRenderer,
+    OH_AudioInterrupt_ForceType, OH_AudioInterrupt_ForceType_AUDIOSTREAM_INTERRUPT_FORCE,
+    OH_AudioInterrupt_Hint, OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_PAUSE,
+    OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_STOP, OH_AudioRenderer,
     OH_AudioRenderer_Callbacks, OH_AudioRenderer_GetSamplingRate, OH_AudioRenderer_Release,
     OH_AudioRenderer_Start, OH_AudioStreamBuilder, OH_AudioStreamBuilder_Create,
     OH_AudioStreamBuilder_Destroy, OH_AudioStreamBuilder_GenerateRenderer,
@@ -185,17 +187,12 @@ extern "C" fn audio_renderer_on_interrupt(
 
     let callback_data = unsafe { &*(user_data as *mut OhosCallbackData) };
 
-    match hint {
-        ohos_audio_sys::OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_PAUSE => {
-            callback_data.broken.store(true, Ordering::Relaxed);
-            eprintln!("Audio interrupted (type: {:?}): stream paused", force_type);
-        }
-        _ => {
-            eprintln!(
-                "Audio interrupt event (type: {:?}, hint: {:?})",
-                force_type, hint
-            );
-        }
+    if matches!(
+        hint,
+        OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_PAUSE
+            | OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_STOP
+    ) {
+        callback_data.broken.store(true, Ordering::Relaxed);
     }
 
     0
