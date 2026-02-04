@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["cpal"]
+default = ["cpal", "ohos"]
 cpal = ["dep:cpal"]
 oboe = ["dep:oboe"]
 ohos = ["dep:ohos-audio-sys"]

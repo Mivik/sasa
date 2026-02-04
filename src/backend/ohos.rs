@@ -1,5 +1,3 @@
-use super::{BackendSetup, StateCell};
-use crate::Backend;
 use anyhow::Result;
 use std::{
     ffi::c_void,
@@ -23,6 +21,9 @@ use ohos_audio_sys::{
     OH_AudioStream_SampleFormat_AUDIOSTREAM_SAMPLE_F32LE,
     OH_AudioStream_Type_AUDIOSTREAM_TYPE_RENDERER, OH_AudioStream_Usage_AUDIOSTREAM_USAGE_GAME,
 };
+
+use super::{BackendSetup, StateCell};
+use crate::Backend;
 
 #[derive(Debug, Clone)]
 pub struct OhosSettings {
@@ -152,26 +153,24 @@ extern "C" fn audio_renderer_on_write_data(
     buffer: *mut c_void,
     length: i32,
 ) -> i32 {
-    unsafe {
-        if user_data.is_null() || buffer.is_null() || length <= 0 {
-            return -1;
-        }
-
-        let callback_data = &mut *(user_data as *mut OhosCallbackData);
-        let (mixer, _rec) = callback_data.state.get();
-
-        let sample_count = length as usize / std::mem::size_of::<f32>();
-
-        let f32_buffer = std::slice::from_raw_parts_mut(buffer as *mut f32, sample_count);
-
-        if callback_data.channels == 1 {
-            mixer.render_mono(f32_buffer);
-        } else {
-            mixer.render_stereo(f32_buffer);
-        }
-
-        0
+    if user_data.is_null() || buffer.is_null() || length <= 0 {
+        return -1;
     }
+
+    let callback_data = unsafe { &mut *(user_data as *mut OhosCallbackData) };
+    let (mixer, _rec) = callback_data.state.get();
+
+    let sample_count = length as usize / size_of::<f32>();
+
+    let f32_buffer = unsafe { std::slice::from_raw_parts_mut(buffer as *mut f32, sample_count) };
+
+    if callback_data.channels == 1 {
+        mixer.render_mono(f32_buffer);
+    } else {
+        mixer.render_stereo(f32_buffer);
+    }
+
+    0
 }
 
 extern "C" fn audio_renderer_on_interrupt(
