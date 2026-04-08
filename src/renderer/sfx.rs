@@ -32,7 +32,7 @@ impl Renderer for SfxRenderer {
         let mut pop_count = 0;
         for (position, params) in self.cons.iter_mut() {
             for sample in data.iter_mut() {
-                if let Some(frame) = self.clip.sample(*position) {
+                if let Some(frame) = self.clip.sample(*position as f64) {
                     *sample += frame.avg() * params.amplifier;
                 } else {
                     pop_count += 1;
@@ -49,7 +49,7 @@ impl Renderer for SfxRenderer {
         let mut pop_count = 0;
         for (position, params) in self.cons.iter_mut() {
             for sample in data.chunks_exact_mut(2) {
-                if let Some(frame) = self.clip.sample(*position) {
+                if let Some(frame) = self.clip.sample(*position as f64) {
                     sample[0] += frame.0 * params.amplifier;
                     sample[1] += frame.1 * params.amplifier;
                 } else {
