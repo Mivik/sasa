@@ -35,6 +35,23 @@ pub struct OhosSettings {
     pub channels: u16,
 }
 
+impl OhosSettings {
+    /// OHAudio's low-latency callback durations are 5, 10, 15 and 20 ms.
+    pub fn callback_frame_sizes(&self) -> [u32; 4] {
+        let sample_rate = u64::from(self.sample_rate.unwrap_or(48000));
+        [5, 10, 15, 20].map(|ms| (sample_rate * ms / 1000) as u32)
+    }
+
+    pub fn callback_frame_size(&self) -> u32 {
+        let sizes = self.callback_frame_sizes();
+        let preferred = self.buffer_size.unwrap_or(sizes[0]);
+        *sizes
+            .iter()
+            .min_by_key(|&&size| size.abs_diff(preferred))
+            .unwrap()
+    }
+}
+
 impl Default for OhosSettings {
     fn default() -> Self {
         Self {
