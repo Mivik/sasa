@@ -12,18 +12,19 @@ use ohos_audio_sys::{
     OH_AudioInterrupt_ForceType, OH_AudioInterrupt_Hint,
     OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_PAUSE,
     OH_AudioInterrupt_Hint_AUDIOSTREAM_INTERRUPT_HINT_STOP, OH_AudioRenderer,
-    OH_AudioRenderer_Callbacks, OH_AudioRenderer_GetSamplingRate, OH_AudioRenderer_Release,
-    OH_AudioRenderer_Start, OH_AudioStreamBuilder, OH_AudioStreamBuilder_Create,
-    OH_AudioStreamBuilder_Destroy, OH_AudioStreamBuilder_GenerateRenderer,
-    OH_AudioStreamBuilder_SetChannelCount, OH_AudioStreamBuilder_SetFrameSizeInCallback,
-    OH_AudioStreamBuilder_SetLatencyMode, OH_AudioStreamBuilder_SetRendererCallback,
-    OH_AudioStreamBuilder_SetRendererInfo, OH_AudioStreamBuilder_SetSampleFormat,
-    OH_AudioStreamBuilder_SetSamplingRate,
+    OH_AudioRenderer_Callbacks, OH_AudioRenderer_GetFrameSizeInCallback,
+    OH_AudioRenderer_GetSamplingRate, OH_AudioRenderer_Release, OH_AudioRenderer_Start,
+    OH_AudioStreamBuilder, OH_AudioStreamBuilder_Create, OH_AudioStreamBuilder_Destroy,
+    OH_AudioStreamBuilder_GenerateRenderer, OH_AudioStreamBuilder_SetChannelCount,
+    OH_AudioStreamBuilder_SetFrameSizeInCallback, OH_AudioStreamBuilder_SetLatencyMode,
+    OH_AudioStreamBuilder_SetRendererCallback, OH_AudioStreamBuilder_SetRendererInfo,
+    OH_AudioStreamBuilder_SetSampleFormat, OH_AudioStreamBuilder_SetSamplingRate,
     OH_AudioStream_LatencyMode_AUDIOSTREAM_LATENCY_MODE_FAST,
     OH_AudioStream_Result_AUDIOSTREAM_SUCCESS,
     OH_AudioStream_SampleFormat_AUDIOSTREAM_SAMPLE_F32LE,
     OH_AudioStream_Type_AUDIOSTREAM_TYPE_RENDERER, OH_AudioStream_Usage_AUDIOSTREAM_USAGE_GAME,
 };
+use ohos_hilog_binding::{hilog_info, hilog_warn};
 use parking_lot::Mutex;
 
 use super::BackendSetup;
@@ -143,6 +144,18 @@ impl Backend for OhosBackend {
             let mut renderer: *mut OH_AudioRenderer = ptr::null_mut();
             OH_AudioStreamBuilder_GenerateRenderer(builder, &mut renderer);
             OH_AudioStreamBuilder_Destroy(builder);
+            let mut actual_frame_size: i32 = 0;
+            let result = OH_AudioRenderer_GetFrameSizeInCallback(renderer, &mut actual_frame_size);
+            if result == OH_AudioStream_Result_AUDIOSTREAM_SUCCESS && actual_frame_size > 0 {
+                hilog_info!(
+                    "sasa OHOS callback frames: configured={:?}, requested={frame_size}, actual={actual_frame_size}, requested_sample_rate={sample_rate} Hz",
+                    self.settings.buffer_size
+                );
+            } else {
+                hilog_warn!(
+                    "sasa OHOS GetFrameSizeInCallback failed: result={result}, frame_size={actual_frame_size}"
+                );
+            }
             let mut actual_sample_rate: i32 = 0;
             OH_AudioRenderer_GetSamplingRate(renderer, &mut actual_sample_rate);
             self.state.as_ref().unwrap().lock().mixer.sample_rate = actual_sample_rate as u32;

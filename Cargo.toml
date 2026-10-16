@@ -7,7 +7,7 @@ edition = "2021"
 default = ["cpal"]
 cpal = ["dep:cpal"]
 oboe = ["dep:oboe"]
-ohos = ["dep:ohos-audio-sys"]
+ohos = ["dep:ohos-audio-sys", "dep:ohos-hilog-binding"]
 
 [dependencies]
 anyhow = "1.0.100"
@@ -19,3 +19,4 @@ thiserror = "2.0.18"
 
 oboe = { version = "0.6.1", optional = true, features = ["shared-stdcxx"] }
 ohos-audio-sys = { version = "0.0.1", optional = true, features = ["api-20"] }
+ohos-hilog-binding = { version = "0.1.2", optional = true }
