@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::{
     ffi::c_void,
     ptr,
@@ -20,6 +20,7 @@ use ohos_audio_sys::{
     OH_AudioStreamBuilder_SetRendererInfo, OH_AudioStreamBuilder_SetSampleFormat,
     OH_AudioStreamBuilder_SetSamplingRate,
     OH_AudioStream_LatencyMode_AUDIOSTREAM_LATENCY_MODE_FAST,
+    OH_AudioStream_Result_AUDIOSTREAM_SUCCESS,
     OH_AudioStream_SampleFormat_AUDIOSTREAM_SAMPLE_F32LE,
     OH_AudioStream_Type_AUDIOSTREAM_TYPE_RENDERER, OH_AudioStream_Usage_AUDIOSTREAM_USAGE_GAME,
 };
@@ -115,8 +116,13 @@ impl Backend for OhosBackend {
                 OH_AudioStream_Usage_AUDIOSTREAM_USAGE_GAME,
             );
 
-            if let Some(buffer_size) = self.settings.buffer_size {
-                OH_AudioStreamBuilder_SetFrameSizeInCallback(builder, buffer_size as i32);
+            let frame_size = self.settings.callback_frame_size();
+            let result = OH_AudioStreamBuilder_SetFrameSizeInCallback(builder, frame_size as i32);
+            if result != OH_AudioStream_Result_AUDIOSTREAM_SUCCESS {
+                OH_AudioStreamBuilder_Destroy(builder);
+                bail!(
+                    "failed to set OHOS callback frame size to {frame_size} at {sample_rate} Hz: error {result}"
+                );
             }
 
             let callback_data = Box::new(OhosCallbackData::new(
